@@ -151,9 +151,32 @@ def upload_all_files_atomic(session: requests.Session) -> None:
 
     latest_commit_sha = ref_resp.json()["object"]["sha"]
 
+    # Preserva o histórico remoto (data/publication_history.json) caso já exista no GitHub,
+    # evitando sobrescrever registros de publicações já feitas pelo GitHub Actions.
+    remote_history_sha: str | None = None
+    hist_resp = session.get(
+        f"{GITHUB_API}/repos/{REPO_OWNER}/{REPO_NAME}/contents/data/publication_history.json",
+        params={"ref": "main"},
+        timeout=20,
+    )
+    if hist_resp.status_code == 200:
+        remote_history_sha = hist_resp.json().get("sha")
+
     # Cria um blob para cada arquivo
     tree_items: list[dict[str, Any]] = []
     for idx, (rel_path, raw_bytes) in enumerate(files, start=1):
+        if rel_path == "data/publication_history.json" and remote_history_sha:
+            print(f"      -> ({idx}/{len(files)}) Preservando {rel_path} remoto no GitHub...")
+            tree_items.append(
+                {
+                    "path": rel_path,
+                    "mode": "100644",
+                    "type": "blob",
+                    "sha": remote_history_sha,
+                }
+            )
+            continue
+
         print(f"      -> ({idx}/{len(files)}) Enviando {rel_path} ({len(raw_bytes)} bytes)...")
         blob_resp = session.post(
             f"{GITHUB_API}/repos/{REPO_OWNER}/{REPO_NAME}/git/blobs",
