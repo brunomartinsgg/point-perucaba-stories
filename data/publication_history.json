@@ -1,4 +1,14 @@
 {
-  "publications": {}
+  "publications": {
+    "2026-11-12": {
+      "container_id": "17949354099357574",
+      "date": "2026-11-12",
+      "error_message": null,
+      "executed_at": "2026-11-12T18:56:43-03:00",
+      "image_name": "quinta.jpg",
+      "media_id": "17940655626404102",
+      "status": "SUCCESS",
+      "weekday": "Quinta-feira"
+    }
+  }
 }
-
