@@ -7,7 +7,7 @@ import logging
 import sys
 
 from src.config import SensitiveDataFilter, Settings
-from src.image_selector import WEEKDAY_IMAGE_MAP, normalize_assets_directory
+from src.image_selector import WEEKDAY_IMAGE_MAP, build_public_url
 from src.image_validator import (
     ImageValidationError,
     validate_all_weekly_images,
@@ -68,8 +68,7 @@ def run_verify_setup(
     """Executa diagnóstico completo de pré-produção sem criar containers nem publicar Stories."""
     logger.info("=== INICIANDO DIAGNÓSTICO DE CONFIGURAÇÃO (--verify-setup) ===")
 
-    # 1. Sincroniza (caso estejam em assets/ raiz) e valida todas as 7 imagens locais
-    normalize_assets_directory(settings.assets_dir)
+    # 1. Valida todas as 7 imagens locais
     metas = validate_all_weekly_images(settings.assets_dir)
     for meta in metas:
         logger.info(
@@ -89,10 +88,8 @@ def run_verify_setup(
             "[PENDENTE] Variável IMAGE_BASE_URL ainda não configurada para validação das URLs públicas."
         )
     else:
-        from urllib.parse import quote
-
         for meta in metas:
-            url = f"{settings.image_base_url}/{quote(meta.path.name)}"
+            url = build_public_url(settings.image_base_url, meta.path.name)
             validate_remote_image_url(url)
             logger.info("[OK] URL pública acessível e compatível: %s", url)
 

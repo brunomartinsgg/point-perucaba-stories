@@ -24,6 +24,50 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 EXCLUDED_DIRS = {".git", "__pycache__", ".pytest_cache", ".venv", "venv", "env"}
 EXCLUDED_FILES = {".env", "subir_para_github.bat"}
 
+CANONICAL_RENAMES = {
+    "Segunda — Bebida favorita.jpg": "segunda.jpg",
+    "Terça — Refresque-se.jpg": "terca.jpg",
+    "Quarta — Pausa e energia.jpg": "quarta.jpg",
+    "Quinta — Prepare o encontro.jpg": "quinta.jpg",
+    "Sexta — Sextou.jpg": "sexta.jpg",
+    "Sabado — Churrasco e bebida gelada (2).jpg": "sabado.jpg",
+    "Domingo — Churrasco e bebida gelada.jpg": "domingo.jpg",
+}
+
+
+def normalize_local_story_filenames() -> None:
+    """Tenta renomear localmente as 7 artes; se o OneDrive bloquear, o upload já envia com os nomes canônicos."""
+    stories_dir = BASE_DIR / "assets" / "stories"
+    if not stories_dir.exists():
+        return
+    for old_name, new_name in CANONICAL_RENAMES.items():
+        old_path = stories_dir / old_name
+        new_path = stories_dir / new_name
+        if old_path.exists() and not new_path.exists():
+            try:
+                old_path.rename(new_path)
+                print(f"[OK] Renomeado: '{old_name}' -> '{new_name}'")
+            except OSError:
+                pass
+
+
+def collect_project_files() -> list[tuple[str, bytes]]:
+    """Coleta todos os arquivos do projeto para envio direto via API do GitHub com nomes canônicos."""
+    files_map: dict[str, bytes] = {}
+    for path in sorted(BASE_DIR.rglob("*")):
+        if not path.is_file():
+            continue
+        rel_parts = path.relative_to(BASE_DIR).parts
+        if any(part in EXCLUDED_DIRS for part in rel_parts):
+            continue
+        if path.name in EXCLUDED_FILES or path.suffix in {".pyc", ".pyo", ".tmp"}:
+            continue
+        rel_posix = path.relative_to(BASE_DIR).as_posix()
+        if rel_posix.startswith("assets/stories/") and path.name in CANONICAL_RENAMES:
+            rel_posix = f"assets/stories/{CANONICAL_RENAMES[path.name]}"
+        files_map[rel_posix] = path.read_bytes()
+    return sorted(files_map.items())
+
 
 def get_git_credential_token() -> str | None:
     """Obtém o token do GitHub já autenticado no Git Credential Manager do Windows."""
@@ -42,22 +86,6 @@ def get_git_credential_token() -> str | None:
     except Exception:
         return None
     return None
-
-
-def collect_project_files() -> list[tuple[str, bytes]]:
-    """Coleta todos os arquivos do projeto para envio direto via API do GitHub."""
-    files: list[tuple[str, bytes]] = []
-    for path in sorted(BASE_DIR.rglob("*")):
-        if not path.is_file():
-            continue
-        rel_parts = path.relative_to(BASE_DIR).parts
-        if any(part in EXCLUDED_DIRS for part in rel_parts):
-            continue
-        if path.name in EXCLUDED_FILES or path.suffix in {".pyc", ".pyo", ".tmp"}:
-            continue
-        rel_posix = path.relative_to(BASE_DIR).as_posix()
-        files.append((rel_posix, path.read_bytes()))
-    return files
 
 
 def ensure_repository_exists(session: requests.Session) -> dict[str, Any]:
@@ -288,6 +316,7 @@ def main() -> int:
     )
 
     try:
+        normalize_local_story_filenames()
         ensure_repository_exists(session)
         upload_all_files_atomic(session)
         enable_github_pages(session)

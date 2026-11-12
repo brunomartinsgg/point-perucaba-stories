@@ -7,11 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from src.config import Settings
-from src.image_selector import (
-    SelectedImage,
-    normalize_assets_directory,
-    select_daily_image,
-)
+from src.image_selector import SelectedImage, select_daily_image
 from src.image_validator import validate_local_image, validate_remote_image_url
 from src.meta_client import MetaGraphClient
 from src.publication_log import PublicationLogStore, PublicationRecord
@@ -69,8 +65,6 @@ class StoryPublisher:
         6. Valida a URL pública HTTPS da imagem e publica na Meta Graph API.
         7. Registra o resultado no histórico persistente.
         """
-        normalize_assets_directory(self.settings.assets_dir)
-
         context, selected = select_daily_image(
             assets_dir=self.settings.assets_dir,
             image_base_url=self.settings.image_base_url,

@@ -70,7 +70,14 @@ class MetaGraphClient:
 
     @property
     def base_url(self) -> str:
-        return f"{GRAPH_API_BASE_URL}/{self._api_version}"
+        # Tokens gerados via 'Instagram Login' começam com 'IG' e usam graph.instagram.com;
+        # Tokens gerados via 'Facebook Login' começam com 'EAA' e usam graph.facebook.com.
+        host = (
+            "https://graph.instagram.com"
+            if self._access_token.startswith("IG")
+            else GRAPH_API_BASE_URL
+        )
+        return f"{host}/{self._api_version}"
 
     def _sanitize_text(self, text: str) -> str:
         """Garante que o token de acesso nunca apareça em mensagens de erro."""

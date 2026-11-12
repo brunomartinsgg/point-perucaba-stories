@@ -111,24 +111,14 @@ def validate_all_weekly_images(
     max_size_bytes: int = MAX_IMAGE_SIZE_BYTES,
 ) -> list[ImageMetadata]:
     """Valida todas as 7 imagens semanais do diretório `assets/stories/`."""
-    from src.image_selector import (
-        WEEKDAY_IMAGE_MAP,
-        find_matching_source_for_weekday,
-    )
+    from src.image_selector import WEEKDAY_IMAGE_MAP
 
+    expected_files = filenames or list(WEEKDAY_IMAGE_MAP.values())
     results: list[ImageMetadata] = []
-    if filenames is not None:
-        for name in filenames:
-            results.append(
-                validate_local_image(assets_dir / name, max_size_bytes=max_size_bytes)
-            )
-        return results
-
-    for weekday_idx, default_name in WEEKDAY_IMAGE_MAP.items():
-        path = find_matching_source_for_weekday(assets_dir, weekday_idx) or (
-            assets_dir / default_name
+    for name in expected_files:
+        results.append(
+            validate_local_image(assets_dir / name, max_size_bytes=max_size_bytes)
         )
-        results.append(validate_local_image(path, max_size_bytes=max_size_bytes))
     return results
 
 
