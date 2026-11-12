@@ -1,0 +1,88 @@
+name: Publicação Diária de Story — Point Perucaba
+
+on:
+  schedule:
+    # O GitHub Actions utiliza UTC no agendamento cron.
+    # 11:00 UTC equivale a 08:00 em America/Sao_Paulo (BRT / UTC-3).
+    # Nota: O GitHub Actions não garante execução no minuto exato; pode haver atraso
+    # de 5 a 25 minutos dependendo da carga dos runners compartilhados.
+    - cron: "0 11 * * *"
+
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Modo Simulação (true = valida tudo sem publicar na Meta; false = publica Story real)"
+        required: true
+        default: true
+        type: boolean
+
+# Impede que duas execuções rodem simultaneamente e causem condição de corrida
+concurrency:
+  group: daily-story-publish
+  cancel-in-progress: false
+
+# Permissões mínimas necessárias (contents: write apenas para persistir o log de duplicidade)
+permissions:
+  contents: write
+
+jobs:
+  publish-story:
+    name: Validar e Publicar Story do Dia
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Instalar dependências fixadas
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Executar testes unitários de integridade
+        run: |
+          python -m unittest discover -s tests -v
+          pytest -q
+
+      - name: Diagnóstico de pré-produção (7 imagens, URLs públicas e autenticação Meta)
+        env:
+          META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+          META_IG_USER_ID: ${{ secrets.META_IG_USER_ID }}
+          IMAGE_BASE_URL: ${{ vars.IMAGE_BASE_URL != '' && vars.IMAGE_BASE_URL || secrets.IMAGE_BASE_URL != '' && secrets.IMAGE_BASE_URL || 'https://brunomartinsgg.github.io/point-perucaba-stories/assets/stories' }}
+          META_API_VERSION: ${{ vars.META_API_VERSION != '' && vars.META_API_VERSION || 'v22.0' }}
+          TIMEZONE: "America/Sao_Paulo"
+        run: python -m src.main --verify-setup
+
+      - name: Executar publicação diária (ou simulação)
+        env:
+          META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+          META_IG_USER_ID: ${{ secrets.META_IG_USER_ID }}
+          IMAGE_BASE_URL: ${{ vars.IMAGE_BASE_URL != '' && vars.IMAGE_BASE_URL || secrets.IMAGE_BASE_URL != '' && secrets.IMAGE_BASE_URL || 'https://brunomartinsgg.github.io/point-perucaba-stories/assets/stories' }}
+          META_API_VERSION: ${{ vars.META_API_VERSION != '' && vars.META_API_VERSION || 'v22.0' }}
+          TIMEZONE: "America/Sao_Paulo"
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+        run: python -m src.main
+
+      - name: Persistir imagens padronizadas e registro de controle de duplicidade
+        if: ${{ success() && (github.event_name != 'workflow_dispatch' || inputs.dry_run == false) }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/publication_history.json assets/stories/*.jpg 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(history): registra publicação diária de Story [skip ci]"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          else
+            echo "Nenhuma alteração no histórico de publicações."
+          fi
+
