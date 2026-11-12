@@ -7,11 +7,14 @@ já salva no Git Credential Manager do Windows (sem depender de lockfiles do One
 from __future__ import annotations
 
 import base64
+import io
 from pathlib import Path
 import subprocess
 import sys
 from typing import Any
+import unicodedata
 
+from PIL import Image
 import requests
 
 REPO_OWNER = "brunomartinsgg"
@@ -31,8 +34,51 @@ CANONICAL_RENAMES = {
     "Quinta — Prepare o encontro.jpg": "quinta.jpg",
     "Sexta — Sextou.jpg": "sexta.jpg",
     "Sabado — Churrasco e bebida gelada (2).jpg": "sabado.jpg",
+    "Sabado — Churrasco e bebida gelada.jpg": "sabado.jpg",
     "Domingo — Churrasco e bebida gelada.jpg": "domingo.jpg",
 }
+
+WEEKDAY_KEYWORDS = [
+    ("segunda", "segunda.jpg"),
+    ("terca", "terca.jpg"),
+    ("quarta", "quarta.jpg"),
+    ("quinta", "quinta.jpg"),
+    ("sexta", "sexta.jpg"),
+    ("sabado", "sabado.jpg"),
+    ("domingo", "domingo.jpg"),
+]
+
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+
+
+def _resolve_story_filename_and_bytes(path: Path) -> tuple[str, bytes]:
+    """
+    Mapeia qualquer arte em `assets/stories/` (mesmo com nome descritivo ou extensão .png/.webp)
+    para o nome canônico (`segunda.jpg` .. `domingo.jpg`) e garante formato JPEG real para a Meta.
+    """
+    raw_bytes = path.read_bytes()
+    target_name = CANONICAL_RENAMES.get(path.name)
+
+    if not target_name:
+        stem_norm = unicodedata.normalize("NFD", path.stem.lower())
+        stem_ascii = "".join(c for c in stem_norm if unicodedata.category(c) != "Mn")
+        for keyword, canonical in WEEKDAY_KEYWORDS:
+            if keyword in stem_ascii:
+                target_name = canonical
+                break
+
+    if not target_name:
+        return path.name, raw_bytes
+
+    # Garante que a imagem esteja em formato JPEG real (converte PNG/WebP automaticamente)
+    with Image.open(io.BytesIO(raw_bytes)) as img:
+        if (img.format or "").upper() not in {"JPEG", "MPO"}:
+            buf = io.BytesIO()
+            img.convert("RGB").save(buf, format="JPEG", quality=95)
+            raw_bytes = buf.getvalue()
+            print(f"[OK] Convertido para JPEG compatível com a Meta: '{path.name}' -> '{target_name}'")
+
+    return target_name, raw_bytes
 
 
 def normalize_local_story_filenames() -> None:
@@ -63,9 +109,12 @@ def collect_project_files() -> list[tuple[str, bytes]]:
         if path.name in EXCLUDED_FILES or path.suffix in {".pyc", ".pyo", ".tmp"}:
             continue
         rel_posix = path.relative_to(BASE_DIR).as_posix()
-        if rel_posix.startswith("assets/stories/") and path.name in CANONICAL_RENAMES:
-            rel_posix = f"assets/stories/{CANONICAL_RENAMES[path.name]}"
-        files_map[rel_posix] = path.read_bytes()
+        if rel_posix.startswith("assets/stories/") and path.suffix.lower() in IMAGE_EXTENSIONS:
+            canonical_name, jpeg_bytes = _resolve_story_filename_and_bytes(path)
+            rel_posix = f"assets/stories/{canonical_name}"
+            files_map[rel_posix] = jpeg_bytes
+        else:
+            files_map[rel_posix] = path.read_bytes()
     return sorted(files_map.items())
 
 
