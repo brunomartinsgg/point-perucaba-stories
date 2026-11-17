@@ -49,6 +49,16 @@
       "media_id": "18149181331570356",
       "status": "SUCCESS",
       "weekday": "Segunda-feira"
+    },
+    "2026-11-17": {
+      "container_id": "17950195860357574",
+      "date": "2026-11-17",
+      "error_message": null,
+      "executed_at": "2026-11-17T16:27:12-03:00",
+      "image_name": "terca.jpg",
+      "media_id": "17934764757161401",
+      "status": "SUCCESS",
+      "weekday": "Terça-feira"
     }
   }
 }
