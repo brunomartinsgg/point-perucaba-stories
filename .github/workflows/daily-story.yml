@@ -6,8 +6,8 @@ on:
     # 11:00 UTC equivale a 08:00 em America/Sao_Paulo (BRT / UTC-3).
     # Nota: O GitHub Actions não garante execução no minuto exato; pode haver atraso
     # de 5 a 25 minutos dependendo da carga dos runners compartilhados.
-   - cron: "53 10 * * *"
-   - cron: "27 11 * * *"
+  - cron: "53 10 * * *"
+  - cron: "27 11 * * *"
 
   workflow_dispatch:
     inputs:
