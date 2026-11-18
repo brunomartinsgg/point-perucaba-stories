@@ -59,6 +59,16 @@
       "media_id": "17934764757161401",
       "status": "SUCCESS",
       "weekday": "Terça-feira"
+    },
+    "2026-11-18": {
+      "container_id": "17950267668357574",
+      "date": "2026-11-18",
+      "error_message": null,
+      "executed_at": "2026-11-18T08:00:47-03:00",
+      "image_name": "quarta.jpg",
+      "media_id": "18116231687132352",
+      "status": "SUCCESS",
+      "weekday": "Quarta-feira"
     }
   }
 }
