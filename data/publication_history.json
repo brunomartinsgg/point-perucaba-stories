@@ -79,6 +79,16 @@
       "media_id": "18136554445813647",
       "status": "SUCCESS",
       "weekday": "Quinta-feira"
+    },
+    "2026-11-20": {
+      "container_id": "17950521528357574",
+      "date": "2026-11-20",
+      "error_message": null,
+      "executed_at": "2026-11-20T08:00:43-03:00",
+      "image_name": "sexta.jpg",
+      "media_id": "18107368916378248",
+      "status": "SUCCESS",
+      "weekday": "Sexta-feira"
     }
   }
 }
