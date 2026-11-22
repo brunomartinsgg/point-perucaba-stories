@@ -99,6 +99,16 @@
       "media_id": "18198206539395546",
       "status": "SUCCESS",
       "weekday": "Sábado"
+    },
+    "2026-11-22": {
+      "container_id": "17950782042357574",
+      "date": "2026-11-22",
+      "error_message": null,
+      "executed_at": "2026-11-22T08:00:43-03:00",
+      "image_name": "domingo.jpg",
+      "media_id": "18064418216568186",
+      "status": "SUCCESS",
+      "weekday": "Domingo"
     }
   }
 }
